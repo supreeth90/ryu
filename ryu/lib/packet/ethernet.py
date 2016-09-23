@@ -56,7 +56,12 @@ class ethernet(packet_base.PacketBase):
 
     @classmethod
     def parser(cls, buf):
+        print("***** ETHERNET PARSER****")
+        print(buf)
         dst, src, ethertype = struct.unpack_from(cls._PACK_STR, buf)
+        # print("src:"+src)
+        print("ethertype")
+        print(ethertype)
         return (cls(addrconv.mac.bin_to_text(dst),
                     addrconv.mac.bin_to_text(src), ethertype),
                 ethernet.get_packet_type(ethertype),

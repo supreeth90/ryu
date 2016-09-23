@@ -492,6 +492,60 @@ class LLDPPacket(object):
 
         return src_dpid, src_port_no
 
+    @staticmethod
+    def lldp_parse_new(data):
+        print("Supreeths LLDP parser")
+        pkt = packet.Packet(data)
+        i = iter(pkt)
+        eth_pkt = six.next(i)
+        assert type(eth_pkt) == ethernet.ethernet
+
+        lldp_pkt = six.next(i)
+        print("LLDP PACKET")
+        print(lldp_pkt)
+        print("****TYPE")
+        print(type(lldp_pkt))
+        if type(lldp_pkt) != lldp.lldp:
+            raise LLDPPacket.LLDPUnknownFormat()
+
+        print("number of TLVs:"+str(len(lldp_pkt.tlvs)))
+
+        for tlv in lldp_pkt.tlvs:
+            print("*****NEW TLV:")
+            print(tlv)
+        print("****END TLVSSS")
+        tlv_chassis_id = lldp_pkt.tlvs[0]
+
+        return lldp_pkt
+        # print("tlv_chassis_id:")
+        # print(tlv_chassis_id)
+        # if tlv_chassis_id.subtype != lldp.ChassisID.SUB_LOCALLY_ASSIGNED:
+        #     raise LLDPPacket.LLDPUnknownFormat(
+        #         msg='unknown chassis id subtype %d' % tlv_chassis_id.subtype)
+        # if tlv_chassis_id.subtype == lldp.ChassisID.SUB_LOCALLY_ASSIGNED:
+        #     chassis_id = tlv_chassis_id.chassis_id.decode('utf-8')
+        #     if not chassis_id.startswith(LLDPPacket.CHASSIS_ID_PREFIX):
+        #         raise LLDPPacket.LLDPUnknownFormat(
+        #             msg='unknown chassis id format %s' % chassis_id)
+        #     chassis_id_val = str_to_dpid(chassis_id[LLDPPacket.CHASSIS_ID_PREFIX_LEN:])
+        # else:
+        #     chassis_id_val = tlv_chassis_id.chassis_id
+        # print("Chassis ID: %s" % chassis_id_val)
+        #
+        #
+        # tlv_port_id = lldp_pkt.tlvs[1]
+        # if tlv_port_id.subtype != lldp.PortID.SUB_PORT_COMPONENT:
+        #     raise LLDPPacket.LLDPUnknownFormat(
+        #         msg='unknown port id subtype %d' % tlv_port_id.subtype)
+        # port_id = tlv_port_id.port_id
+        # print("port_id: %s" % port_id)
+        # if len(port_id) != LLDPPacket.PORT_ID_SIZE:
+        #     raise LLDPPacket.LLDPUnknownFormat(
+        #         msg='unknown port id %d' % port_id)
+        # (src_port_no,) = struct.unpack(LLDPPacket.PORT_ID_STR, port_id)
+        #
+        # return chassis_id_val, src_port_no
+
 
 class Switches(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_0.OFP_VERSION, ofproto_v1_2.OFP_VERSION,

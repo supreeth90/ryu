@@ -43,6 +43,8 @@ optional TLV may be inserted in any order
 import struct
 from ryu.lib import stringify
 from ryu.lib.packet import packet_base
+import sys
+import traceback
 
 
 # LLDP destination MAC address
@@ -126,17 +128,23 @@ class lldp(packet_base.PacketBase):
     @classmethod
     def _parser(cls, buf):
         tlvs = []
-
+        print("-----STARTING LLDP PARSER-----")
+        print("Length")
+        print(len(buf))
         while buf:
             tlv_type = LLDPBasicTLV.get_type(buf)
+            print("tlv_type")
+            print(tlv_type)
             tlv = cls._tlv_parsers[tlv_type](buf)
+            print("TLV")
+            print(tlv)
             tlvs.append(tlv)
             offset = LLDP_TLV_SIZE + tlv.len
             buf = buf[offset:]
             if tlv.tlv_type == LLDP_TLV_END:
                 break
             assert len(buf) > 0
-
+        print("-----ENDING LLDP PARSER-----")
         lldp_pkt = cls(tlvs)
 
         assert lldp_pkt._tlvs_len_valid()
@@ -146,6 +154,7 @@ class lldp(packet_base.PacketBase):
 
     @classmethod
     def parser(cls, buf):
+        print("****LLDP PARSER***")
         try:
             return cls._parser(buf)
         except:
@@ -210,8 +219,10 @@ class ChassisID(LLDPBasicTLV):
     SUB_LOCALLY_ASSIGNED = 7    # local
 
     def __init__(self, buf=None, *args, **kwargs):
+        print("*** CHASSIS ***")
         super(ChassisID, self).__init__(buf, *args, **kwargs)
         if buf:
+            print(self._PACK_SIZE)
             (self.subtype, ) = struct.unpack(
                 self._PACK_STR, self.tlv_info[:self._PACK_SIZE])
             self.chassis_id = self.tlv_info[self._PACK_SIZE:]
@@ -245,10 +256,15 @@ class PortID(LLDPBasicTLV):
     SUB_LOCALLY_ASSIGNED = 7    # local
 
     def __init__(self, buf=None, *args, **kwargs):
+        print("*** PORT ID ***")
         super(PortID, self).__init__(buf, *args, **kwargs)
         if buf:
+
             (self.subtype, ) = struct.unpack(
                 self._PACK_STR, self.tlv_info[:self._PACK_SIZE])
+            print(self._PACK_SIZE)
+            print("Subtype")
+            print(self.subtype)
             self.port_id = self.tlv_info[self._PACK_SIZE:]
         else:
             self.subtype = kwargs['subtype']
@@ -269,8 +285,11 @@ class TTL(LLDPBasicTLV):
     _LEN_MAX = _PACK_SIZE
 
     def __init__(self, buf=None, *args, **kwargs):
+        print("*** TTL***")
         super(TTL, self).__init__(buf, *args, **kwargs)
         if buf:
+            print(self._PACK_SIZE)
+            print(len(self.tlv_info))
             (self.ttl, ) = struct.unpack(
                 self._PACK_STR, self.tlv_info[:self._PACK_SIZE])
         else:
@@ -364,7 +383,7 @@ class SystemDescription(LLDPBasicTLV):
 @lldp.set_tlv_type(LLDP_TLV_SYSTEM_CAPABILITIES)
 class SystemCapabilities(LLDPBasicTLV):
     # chassis subtype(1) + system cap(2) + enabled cap(2)
-    _PACK_STR = '!BHH'
+    _PACK_STR = '!HH'
     _PACK_SIZE = struct.calcsize(_PACK_STR)
     _LEN_MIN = _PACK_SIZE
     _LEN_MAX = _PACK_SIZE
@@ -382,17 +401,30 @@ class SystemCapabilities(LLDPBasicTLV):
     CAP_TPMR = (1 << 10)                # IEEE Std 802.1Q
 
     def __init__(self, buf=None, *args, **kwargs):
-        super(SystemCapabilities, self).__init__(buf, *args, **kwargs)
-        if buf:
-            (self.subtype, self.system_cap, self.enabled_cap) = \
-                struct.unpack(self._PACK_STR, self.tlv_info[:self._PACK_SIZE])
-        else:
-            self.subtype = kwargs['subtype']
-            self.system_cap = kwargs['system_cap']
-            self.enabled_cap = kwargs['enabled_cap']
-            self.len = self._PACK_SIZE
-            assert self._len_valid()
-            self.typelen = (self.tlv_type << LLDP_TLV_TYPE_SHIFT) | self.len
+        print("LLDP_TLV_SYSTEM_CAPABILITIES *********")
+        try:
+            super(SystemCapabilities, self).__init__(buf, *args, **kwargs)
+            if buf:
+                print("Trying to unpack")
+                print(self._PACK_SIZE)
+                print(len(self.tlv_info))
+                self.subtype = 0
+                (self.system_cap, self.enabled_cap) = \
+                    struct.unpack(self._PACK_STR, self.tlv_info[:self._PACK_SIZE])
+            else:
+                self.subtype = kwargs['subtype']
+                self.system_cap = kwargs['system_cap']
+                self.enabled_cap = kwargs['enabled_cap']
+                self.len = self._PACK_SIZE
+                assert self._len_valid()
+                self.typelen = (self.tlv_type << LLDP_TLV_TYPE_SHIFT) | self.len
+        except Exception as e:
+            type, value, traceback = sys.exc_info()
+            print("Exception in *******SYS CAP")
+            print(type)
+            print(value)
+            # print(traceback)
+            traceback.print_stack(file=sys.stdout)
 
     def serialize(self):
         return struct.pack('!HBHH',

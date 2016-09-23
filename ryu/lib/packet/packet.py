@@ -67,6 +67,9 @@ class Packet(StringifyMixin):
             self._parser(parse_cls)
 
     def _parser(self, cls):
+        print("****** RYU PARSER*****")
+        # print(cls.__dict__)
+        print("****** EEND RYU PARSER***")
         rest_data = self.data
         while cls:
             try:
